@@ -1,15 +1,13 @@
+import numpy as np
 import pandas as pd
 import geopandas as gpd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from os import system
 from datetime import datetime, timedelta
 from math import radians, cos, sin, asin, sqrt
 
 ###########################################################################
 # Utilities
 import json
+
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -384,6 +382,42 @@ def get_lab_lab_compatible(l, inst_type):
         
     return d
 
+def get_lab_lab_distance(labs):
+    #dist = list()
+    #
+    #for l1 in labs:
+    #    dist.append(list())
+    #
+    #    for l2 in labs:
+    #        d = np.sqrt(sqdist(l1, l2))
+    #        dist[-1].append(np.round(d, decimals=2))
+    #
+    #return dist
+    raise NotImplementedError
+
+def get_fac_lab_distance(labs, factories):
+    dist = [[]] * factories.shape[0]
+
+    for index_f, row_f in factories.iterrows():
+        tmp_row = [0] * labs.shape[0]
+
+        for index_l, row_l in labs.iterrows():
+            tmp_row[index_l] = euclid_distance(
+                row_f['city_lat'], row_f['city_long'],
+                row_l['city_lat'], row_l['city_long']
+            )
+
+        dist[index_f] = tmp_row
+
+    return dist
+
+
+def euclid_distance(x1, y1, x2, y2):
+    dx = x1 - x2
+    dy = y1 - y2
+    return np.sqrt(dx * dx + dy * dy)
+
+
 def get_fac_lab_compatible(nfac, lcf, inst_type):
     """ Factory-to-lab reagent delivery map.
     """
@@ -443,7 +477,8 @@ def get_instance(f, l, r, inst_type, **kwargs):
         reg_day_demand=reg_day_demand,
         lab_lab_compatible=get_lab_lab_compatible(l, inst_type),
         fac_lab_compatible=get_fac_lab_compatible(len(f), lab_closest_factory, inst_type),
-        reg_names=sorted(l.region.unique())
+        reg_names=sorted(l.region.unique()),
+        fac_lab_distance=get_fac_lab_distance(l, f),
     )
 
 def create_instance(f, l, r, inst_type, **kwargs):
@@ -491,6 +526,9 @@ if __name__ == '__main__':
     f = pd.read_csv('italy_factories_coords.csv')
     l = pd.read_csv('italy_labs_coords.csv')
     rd, r = get_regional_data()
+
+    for index, row in f.iterrows():
+        print(index, row['city_lat'], row['city_long'])
 
     inst_path = '../generated'
 
