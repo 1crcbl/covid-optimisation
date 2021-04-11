@@ -32,8 +32,7 @@ def haversine(lon1, lat1, lon2, lat2):
 ###########################################################################
 
 ###########################################################################
-# Instance destination path:
-inst_path = '/home/alberto/local/src/my-github/covid/data/swab-test/generated'
+
 #
 ###########################################################################
 
@@ -52,7 +51,7 @@ def get_regional_data(start_date='2020-04-01'):
             - a pandas dataframe with data for all regions
     """
 
-    italy = gpd.read_file('gadm36_ITA_1.shp')
+    italy = gpd.read_file('gadm36_ITA_1.shp', SHAPE_RESTORE_SHX='YES')
     start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
     
     regional_data = dict()
@@ -79,14 +78,16 @@ def get_regional_data(start_date='2020-04-01'):
     # Rename regions
     regional_data['Emilia Romagna'] = regional_data.pop('Emilia-Romagna')
     regional_data['Valle Aosta'] = regional_data.pop('Valle d\'Aosta')
-    italy.NAME_1 = italy.NAME_1.replace({
-        'Apulia': 'Puglia',
-        'Emilia-Romagna': 'Emilia Romagna',
-        'Friuli-Venezia Giulia': 'Friuli Venezia Giulia',
-        'Sicily': 'Sicilia',
-        'Trentino-Alto Adige': 'Trentino Alto Adige',
-        'Valle d\'Aosta': 'Valle Aosta'
-    })
+
+    # Object italy doesnt have the column NAME_1 [?].
+    #italy.NAME_1 = italy.NAME_1.replace({
+    #    'Apulia': 'Puglia',
+    #    'Emilia-Romagna': 'Emilia Romagna',
+    #    'Friuli-Venezia Giulia': 'Friuli Venezia Giulia',
+    #    'Sicily': 'Sicilia',
+    #    'Trentino-Alto Adige': 'Trentino Alto Adige',
+    #    'Valle d\'Aosta': 'Valle Aosta'
+    #})
     
     # Rename regions inside DFs and change column names
     for region, reg_df in regional_data.items():
@@ -451,6 +452,7 @@ def create_instance(f, l, r, inst_type, **kwargs):
 
     i = get_instance(f, l, r, inst_type, **kwargs)
 
+    import os
     with open(f"{inst_path}/italy-{inst_type}.json", 'w') as file:
         file.write(json.dumps(i, cls=NpEncoder, indent=4))
         
@@ -483,3 +485,23 @@ def create_all_instances(f, l, r, **kwargs):
 # fac_day_production_mult=1.5
 #
 ###########################################################################
+
+
+if __name__ == '__main__':
+    f = pd.read_csv('italy_factories_coords.csv')
+    l = pd.read_csv('italy_labs_coords.csv')
+    rd, r = get_regional_data()
+
+    inst_path = '../generated'
+
+    create_all_instances(
+        f, l, r,
+        reg_day_demand_mult=1.05,
+        reg_overwhelmed_demand_mult=2.0,
+        lab_capacity_mult=1.25,
+        lab_start_reagents_mult=0.0,
+        fac_start_reagents_mult=0.0,
+        reg_max_in_reagents_mult='reg',
+        reg_max_in_swabs_mult='reg',
+        fac_day_production_mult=1.5
+    )
